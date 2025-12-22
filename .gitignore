@@ -1,0 +1,43 @@
+# Node / Angular
+node_modules/
+.dist/
+dist/
+build/
+out/
+.tmp/
+tmp/
+temp/
+coverage/
+
+# Angular cache
+.angular/cache/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files
+.env
+.env.*
+
+# TypeScript
+*.tsbuildinfo
+
+# IDE / Editor
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+!.vscode/launch.json
+
+# OS-specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Testing artifacts (optional)
+cypress/videos/
+cypress/screenshots/
