@@ -12,7 +12,7 @@ import { DsvStore } from './dsv.store';
     <mat-toolbar color="primary">
       <div class="brand">
         <mat-icon>security</mat-icon>
-        <span class="title">Digital Signature Vault</span>
+        <span class="title">Digital Signature Vault hey</span>
       </div>
       <span class="spacer"></span>
     </mat-toolbar>
