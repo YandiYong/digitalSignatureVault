@@ -15,6 +15,7 @@ import { DsvStore } from './dsv.store';
     <mat-card class="panel">
       <div class="panel-head">
         <h2 class="panel-title">Stored Signatures</h2>
+       
       </div>
       <div class="list" *ngIf="store.signatures().length > 0; else empty">
         <div class="item" *ngFor="let sig of store.signatures()">
@@ -25,7 +26,8 @@ import { DsvStore } from './dsv.store';
             </div>
             <div class="meta">
               <p><strong>Signed by:</strong> {{ sig.user }}</p>
-              <p><strong>Signed for:</strong> {{ sig.purpose }}</p>
+              <p><strong>Signed for:</strong> {{ sig.signedFor }}</p>
+              <p><strong>Purpose:</strong> {{ sig.purpose }}</p>
               <p><strong>Date:</strong> {{ sig.date }}</p>
             </div>
             <div class="actions">
@@ -57,8 +59,10 @@ import { DsvStore } from './dsv.store';
   ],
 })
 export class DsvStoredListComponent {
+  // Inject store for data and dialog for previewing signatures
   constructor(public store: DsvStore, private dialog: MatDialog) {}
 
+  // Open a dialog to view a larger preview of the signature
   view(sig: { image: string; user: string; purpose: string; date: string }) {
     this.dialog.open(SignatureViewDialogComponent, {
       data: {
@@ -70,5 +74,18 @@ export class DsvStoredListComponent {
       width: '720px',
       maxWidth: '90vw',
     });
+  }
+
+  // Download the current signatures as a JSON file (backend-ready schema)
+  exportJson() {
+    const blob = this.store.exportAsJson();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'signatures.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 }

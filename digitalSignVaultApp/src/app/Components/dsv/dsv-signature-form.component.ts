@@ -46,7 +46,7 @@ import { SignatureApiService } from './signature-api.service';
           #canvas
           class="canvas"
           width="400"
-          height="150"
+          height="200"
           (pointerdown)="start($event)"
           (pointermove)="move($event)"
           (pointerup)="stop()"
@@ -55,7 +55,7 @@ import { SignatureApiService } from './signature-api.service';
       </div>
 
       <div class="form-grid">
-        <mat-form-field appearance="outline">
+        <mat-form-field >
           <mat-label>Signature For</mat-label>
           <mat-select [value]="store.signatureFor()" (selectionChange)="store.setSignatureFor($event.value)">
             <mat-option value="">Select who signs</mat-option>
@@ -66,7 +66,7 @@ import { SignatureApiService } from './signature-api.service';
           </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="outline">
+        <mat-form-field>
           <mat-label>Select Purpose</mat-label>
           <mat-select [value]="store.purpose()" (selectionChange)="store.setPurpose($event.value)">
             <mat-option value="">Choose document type</mat-option>
@@ -80,6 +80,7 @@ import { SignatureApiService } from './signature-api.service';
       </div>
 
       <div class="actions">
+        <button mat-stroked-button color="primary" (click)="undo()" [disabled]="!hasSignature()">Undo</button>
         <button mat-stroked-button color="primary" (click)="clear()">Clear</button>
         <button mat-raised-button color="primary" (click)="save()" [disabled]="!canSave()">Save Signature</button>
       </div>
@@ -99,19 +100,38 @@ import { SignatureApiService } from './signature-api.service';
   ],
 })
 export class DsvSignatureFormComponent implements AfterViewInit, OnDestroy {
+  // Reference to the signature canvas element
   @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
 
+  // Drawing state flags managed via Angular signals
   readonly isDrawing = signal(false);
   readonly hasSignature = signal(false);
+  // Computed flag enabling save only when canvas has content and fields are filled
   readonly canSave = computed(() =>
     this.hasSignature() && !!this.store.signatureFor() && !!this.store.purpose()
   );
+  // 2D drawing context and observer to keep canvas in sync with display size
   private ctx!: CanvasRenderingContext2D;
   private resizeObserver?: ResizeObserver;
+
+  // Stroke model and history for undo support
+  private strokes: { color: string; width: number; points: Array<{ x: number; y: number }> }[] = [];
+  private currentStroke?: { color: string; width: number; points: Array<{ x: number; y: number }> };
+
+  // Keep canvas pen settings synced with store values; defined in a field initializer
+  // to ensure effect is created in Angular's injection context.
+  readonly penSettingsEffect = effect(() => {
+    if (!this.ctx) return;
+    this.ctx.strokeStyle = this.store.penColor();
+    this.ctx.lineWidth = this.store.lineWidth();
+    this.ctx.lineCap = 'round';
+    this.ctx.lineJoin = 'round';
+  });
 
   constructor(public store: DsvStore, private api: SignatureApiService) {}
 
   ngAfterViewInit(): void {
+    // Initialize 2D context and set up resizing + pen settings reactions
     const canvas = this.canvasRef.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('Canvas 2D context unavailable');
@@ -119,20 +139,15 @@ export class DsvSignatureFormComponent implements AfterViewInit, OnDestroy {
     this.resizeToDisplaySize();
     this.resizeObserver = new ResizeObserver(() => this.resizeToDisplaySize());
     this.resizeObserver.observe(canvas);
-
-    effect(() => {
-      this.ctx.strokeStyle = this.store.penColor();
-      this.ctx.lineWidth = this.store.lineWidth();
-      this.ctx.lineCap = 'round';
-      this.ctx.lineJoin = 'round';
-    });
   }
 
   ngOnDestroy(): void {
+    // Stop listening to size changes when component is destroyed
     this.resizeObserver?.disconnect();
   }
 
   private resizeToDisplaySize() {
+    // Scale canvas for device pixel ratio while preserving CSS size
     const canvas = this.canvasRef.nativeElement;
     const dpr = window.devicePixelRatio || 1;
     const displayWidth = Math.max(1, Math.floor(canvas.clientWidth * dpr));
@@ -148,9 +163,12 @@ export class DsvSignatureFormComponent implements AfterViewInit, OnDestroy {
       this.ctx.lineCap = 'round';
       this.ctx.lineJoin = 'round';
     }
+    // Redraw all stored strokes after resize to keep content visible
+    this.redrawAll();
   }
 
   start(ev: PointerEvent) {
+    // Begin path and capture pointer to track drawing within the canvas
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
     this.isDrawing.set(true);
@@ -159,27 +177,46 @@ export class DsvSignatureFormComponent implements AfterViewInit, OnDestroy {
     canvas.setPointerCapture(ev.pointerId);
     // Mark that the canvas has content once drawing starts
     this.hasSignature.set(true);
+    // Start a new stroke with current pen settings
+    this.currentStroke = {
+      color: this.store.penColor(),
+      width: this.store.lineWidth(),
+      points: [{ x: ev.clientX - rect.left, y: ev.clientY - rect.top }],
+    };
   }
 
   move(ev: PointerEvent) {
+    // Extend path while drawing and render the stroke
     if (!this.isDrawing()) return;
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
-    this.ctx.lineTo(ev.clientX - rect.left, ev.clientY - rect.top);
+    const x = ev.clientX - rect.left;
+    const y = ev.clientY - rect.top;
+    this.ctx.lineTo(x, y);
     this.ctx.stroke();
+    // Record the point for undo/redo redraws
+    this.currentStroke?.points.push({ x, y });
   }
 
   stop() {
+    // End current drawing gesture
     this.isDrawing.set(false);
+    if (this.currentStroke) {
+      this.strokes.push(this.currentStroke);
+      this.currentStroke = undefined;
+    }
   }
 
   clear() {
+    // Clear the canvas and reset signature presence flag
     const canvas = this.canvasRef.nativeElement;
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
     this.hasSignature.set(false);
+    this.strokes = [];
   }
 
   save() {
+    // Validate, snapshot canvas as PNG, persist locally, and POST to backend
     if (!this.canSave()) {
       alert('Please fill in all fields');
       return;
@@ -193,7 +230,7 @@ export class DsvSignatureFormComponent implements AfterViewInit, OnDestroy {
       user: this.store.currentUser(),
       purpose: this.store.purpose(),
       signedFor: this.store.signatureFor(),
-      date: new Date().toISOString(),
+      date: new Date().toISOString().slice(0, 10),
     };
     this.api.save(payload).subscribe({
       next: () => {},
@@ -205,6 +242,7 @@ export class DsvSignatureFormComponent implements AfterViewInit, OnDestroy {
   }
 
   onColor(ev: Event) {
+    // Update pen color in store and apply immediately to context
     const value = (ev.target as HTMLInputElement).value;
     this.store.setPenColor(value);
     // Apply immediately to current drawing context
@@ -212,7 +250,44 @@ export class DsvSignatureFormComponent implements AfterViewInit, OnDestroy {
   }
 
   onWidth(ev: Event) {
+    // Update line width used for future strokes
     const value = Number((ev.target as HTMLInputElement).value);
-    if (!Number.isNaN(value)) this.store.setLineWidth(value);
+    if (!Number.isNaN(value)) {
+      this.store.setLineWidth(value);
+      // Apply immediately to current drawing context
+      this.ctx.lineWidth = value;
+    }
+  }
+
+  // Undo the last stroke by removing it from history and redrawing the canvas
+  undo() {
+    if (this.isDrawing()) return; // avoid conflicts while drawing
+    if (this.strokes.length === 0) return;
+    this.strokes.pop();
+    this.redrawAll();
+    this.hasSignature.set(this.strokes.length > 0);
+  }
+
+  // Redraw all recorded strokes onto the canvas
+  private redrawAll() {
+    const canvas = this.canvasRef.nativeElement;
+    this.ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const s of this.strokes) {
+      this.ctx.strokeStyle = s.color;
+      this.ctx.lineWidth = s.width;
+      this.ctx.lineCap = 'round';
+      this.ctx.lineJoin = 'round';
+      if (s.points.length > 0) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(s.points[0].x, s.points[0].y);
+        for (let i = 1; i < s.points.length; i++) {
+          this.ctx.lineTo(s.points[i].x, s.points[i].y);
+        }
+        this.ctx.stroke();
+      }
+    }
+    // Reapply current pen settings after redraw (to not leak stroke styles)
+    this.ctx.strokeStyle = this.store.penColor();
+    this.ctx.lineWidth = this.store.lineWidth();
   }
 }

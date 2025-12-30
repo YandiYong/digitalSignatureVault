@@ -1,32 +1,36 @@
 import { Injectable, effect, signal } from '@angular/core';
 
+// Shape of a stored signature record used by the app and export
 export interface StoredSignature {
   id: number;
-  image: string; // data URL
+  image: string; // data URL or inline SVG
   user: string;
+  signedFor: string;
   purpose: string;
-  date: string;
+  date: string; // ISO yyyy-mm-dd
 }
 
 @Injectable({ providedIn: 'root' })
 export class DsvStore {
+  // User/session + form state
   readonly currentUser = signal<string>('User');
-  readonly activeNav = signal<'dashboard' | 'documents' | 'verification'>('dashboard');
   readonly signatureFor = signal<string>('');
   readonly purpose = signal<string>('');
+  // Drawing tools state
   readonly penColor = signal<string>('#000000');
   readonly lineWidth = signal<number>(2);
+  // In-memory list of saved signatures
   readonly signatures = signal<StoredSignature[]>([]);
 
   constructor() {
-    // Load from localStorage
+    // Load previously saved signatures from localStorage (if any)
     const raw = localStorage.getItem('dsv.signatures');
     if (raw) {
       try {
         this.signatures.set(JSON.parse(raw));
       } catch {}
     }
-    // Persist to localStorage
+    // Persist signatures to localStorage whenever they change
     effect(() => {
       try {
         localStorage.setItem('dsv.signatures', JSON.stringify(this.signatures()));
@@ -34,9 +38,6 @@ export class DsvStore {
     });
   }
 
-  setActiveNav(tab: 'dashboard' | 'documents' | 'verification') {
-    this.activeNav.set(tab);
-  }
   setSignatureFor(value: string) {
     this.signatureFor.set(value);
   }
@@ -51,16 +52,14 @@ export class DsvStore {
   }
 
   addSignature(imageDataUrl: string) {
+    // Create a new signature entry and prepend to the list
     const id = this.signatures().length + 1;
-    const date = new Date().toLocaleDateString('en-GB', {
-      year: 'numeric',
-      month: 'long',
-      day: '2-digit',
-    });
+    const date = new Date().toISOString().slice(0, 10);
     const entry: StoredSignature = {
       id,
       image: imageDataUrl,
       user: this.currentUser(),
+      signedFor: this.signatureFor(),
       purpose: this.purpose(),
       date,
     };
@@ -68,7 +67,29 @@ export class DsvStore {
   }
 
   exportAsJson(): Blob {
-    const json = JSON.stringify(this.signatures(), null, 2);
+    // Export into signatures.json schema: array of records with image type and data
+    const records = this.signatures().map((s) => {
+      const img = s.image ?? '';
+      let type = 'unknown';
+      if (img.startsWith('data:')) {
+        const semi = img.indexOf(';');
+        type = semi > 5 ? img.substring(5, semi) : 'unknown';
+      } else if (img.trim().toLowerCase().startsWith('<svg')) {
+        type = 'svg';
+      }
+      return {
+        // Align to assets/signatures.json fields
+        userName: s.user,
+        signedFor: s.signedFor,
+        purpose: s.purpose,
+        date: s.date,
+        image: {
+          type,
+          data: img,
+        },
+      };
+    });
+    const json = JSON.stringify(records, null, 2);
     return new Blob([json], { type: 'application/json' });
   }
 }

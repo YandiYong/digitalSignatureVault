@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "SEqcnJjCb7E=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\stu21062\\source\\repos\\Digital Signature Vault\\digitalSignatureVault\\digitalSignVaultApp\\SignatureVaultAPI\\SignatureVaultAPI\\SignatureVaultAPI.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\stu21062\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.11\\microsoft.aspnetcore.openapi.9.0.11.nupkg.sha512",
+    "C:\\Users\\stu21062\\.nuget\\packages\\microsoft.openapi\\1.6.17\\microsoft.openapi.1.6.17.nupkg.sha512"
+  ],
+  "logs": []
+}
