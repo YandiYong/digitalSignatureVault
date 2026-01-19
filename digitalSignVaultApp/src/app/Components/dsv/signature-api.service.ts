@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
 @Injectable({ providedIn: 'root' })
 export class SignatureApiService {
   // Replace with your backend endpoint
-  private readonly endpoint = '/api/signatures';
+  private readonly endpoint = '/api/Signatures';
 
   constructor(private http: HttpClient) {}
 

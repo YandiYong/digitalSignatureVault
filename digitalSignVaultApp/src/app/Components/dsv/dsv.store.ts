@@ -7,7 +7,7 @@ export interface StoredSignature {
   user: string;
   signedFor: string;
   purpose: string;
-  date: string; // ISO yyyy-mm-dd
+  date: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -54,7 +54,7 @@ export class DsvStore {
   addSignature(imageDataUrl: string) {
     // Create a new signature entry and prepend to the list
     const id = this.signatures().length + 1;
-    const date = new Date().toISOString().slice(0, 10);
+    const date = new Date().toISOString();
     const entry: StoredSignature = {
       id,
       image: imageDataUrl,

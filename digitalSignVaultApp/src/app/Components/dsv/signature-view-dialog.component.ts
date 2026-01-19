@@ -23,7 +23,7 @@ export interface SignatureDialogData {
       <div class="meta">
         <p><strong>Signed by:</strong> {{ data.user }}</p>
         <p><strong>Signed for:</strong> {{ data.purpose }}</p>
-        <p><strong>Date:</strong> {{ data.date }}</p>
+        <p><strong>Date:</strong> {{ data.date | date:'dd/MM/yyyy HH:mm a' }}</p>
       </div>
     </div>
     <div mat-dialog-actions align="end">

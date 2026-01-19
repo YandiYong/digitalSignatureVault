@@ -28,7 +28,7 @@ import { DsvStore } from './dsv.store';
               <p><strong>Signed by:</strong> {{ sig.user }}</p>
               <p><strong>Signed for:</strong> {{ sig.signedFor }}</p>
               <p><strong>Purpose:</strong> {{ sig.purpose }}</p>
-              <p><strong>Date:</strong> {{ sig.date }}</p>
+              <p><strong>Date:</strong> {{ sig.date | date:'dd/MM/yyyy HH:mm ' }}</p>
             </div>
             <div class="actions">
               <button mat-raised-button color="primary" (click)="view(sig)"><mat-icon>visibility</mat-icon> View</button>

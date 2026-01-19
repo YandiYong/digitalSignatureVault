@@ -230,7 +230,7 @@ export class DsvSignatureFormComponent implements AfterViewInit, OnDestroy {
       user: this.store.currentUser(),
       purpose: this.store.purpose(),
       signedFor: this.store.signatureFor(),
-      date: new Date().toISOString().slice(0, 10),
+      date: new Date(),
     };
     this.api.save(payload).subscribe({
       next: () => {},
