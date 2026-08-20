@@ -30,6 +30,7 @@
               }
             ],
             "styles": [
+              "src/tailwind.css",
               "src/styles.scss"
             ]
           },
@@ -88,7 +89,38 @@
               }
             ],
             "styles": [
+              "src/tailwind.css",
               "src/styles.scss"
+            ]
+          }
+        }
+      }
+    },
+    "digital-signature": {
+      "projectType": "library",
+      "root": "projects/digital-signature",
+      "sourceRoot": "projects/digital-signature/src",
+      "prefix": "dsv",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:ng-packagr",
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/digital-signature/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/digital-signature/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular/build:karma",
+          "options": {
+            "tsConfig": "projects/digital-signature/tsconfig.spec.json",
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
             ]
           }
         }
