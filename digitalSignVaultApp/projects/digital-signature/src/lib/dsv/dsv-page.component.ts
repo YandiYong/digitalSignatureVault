@@ -1,36 +1,39 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+  DigitalSignatureResult,
+  SignatureSigner,
+} from '../models/digital-signature-result';
 import { DsvHeaderComponent } from './dsv-header.component';
 import { DsvSignatureFormComponent } from './dsv-signature-form.component';
-import { DsvStoredListComponent } from './dsv-stored-list.component';
 
 @Component({
   selector: 'dsv-page',
   standalone: true,
-  imports: [CommonModule, DsvHeaderComponent, DsvSignatureFormComponent, DsvStoredListComponent],
+  imports: [DsvHeaderComponent, DsvSignatureFormComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dsv-header />
 
-    <div class="container">
-      <div class="page-title">
-        <h1>Secure Your Digital Signatures</h1>
-        <p>Store and manage your digital signatures safely.</p>
-      </div>
-
-      <div class="grid">
-        <dsv-signature-form />
-        <dsv-stored-list />
-      </div>
-    </div>
+    <main class="container">
+      <dsv-signature-form
+        [signer]="signer()"
+        [heading]="heading()"
+        [confirmButtonText]="confirmButtonText()"
+        [disabled]="disabled()"
+        (signatureConfirmed)="signatureConfirmed.emit($event)"
+      />
+    </main>
   `,
   styles: [
     `
-      .container { max-width: 1120px; margin: 0 auto; padding: 24px; }
-      .page-title h1 { font-size: 28px; margin-bottom: 8px; }
-      .page-title p { color: #666; }
-      .grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-      @media (min-width: 1024px) { .grid { grid-template-columns: 1fr 1fr; } }
+      .container { max-width: 720px; margin: 0 auto; padding: 24px; }
     `,
   ],
 })
-export class DsvPageComponent {}
+export class DsvPageComponent {
+  readonly signer = input.required<SignatureSigner>();
+  readonly heading = input('Create Digital Signature');
+  readonly confirmButtonText = input('Confirm Signature');
+  readonly disabled = input(false);
+  readonly signatureConfirmed = output<DigitalSignatureResult>();
+}

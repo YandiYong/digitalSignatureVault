@@ -1,63 +1,111 @@
-# DigitalSignature
+# @yandiswanpm/digital-signature
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.0.
+Reusable Angular components for capturing a handwritten signature. The library captures and emits signature data; the host application owns authentication, document context, validation, and persistence.
 
-## Code scaffolding
+## Requirements
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+- Angular 20
+- Angular Material 20
+- Angular CDK 20
+- An Angular Material theme in the host application
+
+## Install
 
 ```bash
-ng generate component component-name
+npm install @yandiswanpm/digital-signature
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Use the signature form
 
-```bash
-ng generate --help
+```ts
+import { Component, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import {
+  DigitalSignatureResult,
+  DsvSignatureFormComponent,
+  SignatureSigner,
+} from '@yandiswanpm/digital-signature';
+
+@Component({
+  selector: 'app-document-signature',
+  standalone: true,
+  imports: [DsvSignatureFormComponent],
+  template: `
+    <dsv-signature-form
+      [signer]="signedInUser"
+      heading="Sign this document"
+      confirmButtonText="Acknowledge and Sign"
+      [disabled]="isSaving"
+      (signatureConfirmed)="saveSignature($event)"
+    />
+  `,
+})
+export class DocumentSignatureComponent {
+  private readonly http = inject(HttpClient);
+
+  // Supply this value from the host application's authentication/session service.
+  readonly signedInUser: SignatureSigner = {
+    userId: 'authenticated-user-id',
+    displayName: 'Authenticated User',
+  };
+
+  isSaving = false;
+
+  saveSignature(signature: DigitalSignatureResult): void {
+    this.isSaving = true;
+    const request = {
+      image: signature.dataUrl,
+      mimeType: signature.mimeType,
+      signedByUserId: signature.signedBy.userId,
+      signedByName: signature.signedBy.displayName,
+      signedAt: signature.signedAt,
+      timeZone: signature.timeZone,
+    };
+
+    this.http.post('/your-api/signatures', request).subscribe({
+      next: () => {
+        this.isSaving = false;
+        // Clear through a ViewChild only after the API confirms persistence.
+      },
+      error: () => {
+        this.isSaving = false;
+        // The library keeps the signature visible so the user can retry.
+      },
+    });
+  }
+}
 ```
 
-## Building
+For JSON APIs, send `dataUrl`. For multipart uploads, send `blob` in `FormData`.
 
-To build the library, run:
+## Emitted result
+
+```ts
+interface DigitalSignatureResult {
+  dataUrl: string;
+  blob: Blob;
+  mimeType: 'image/png';
+  signedBy: {
+    userId: string;
+    displayName: string;
+  };
+  signedAt: string;
+  timeZone: string;
+}
+```
+
+`signedAt` is ISO-8601 local time with the browser computer's UTC offset, for example `2026-08-24T15:30:00.000+02:00`. `timeZone` contains the browser's IANA zone when available, for example `Africa/Johannesburg`.
+
+The host API should still use its authenticated identity and server timestamp as the authoritative audit values.
+
+## Build
 
 ```bash
 ng build digital-signature
 ```
 
-This command will compile your project, and the build artifacts will be placed in the `dist/` directory.
-
-### Publishing the Library
-
-Once the project is built, you can publish your library by following these steps:
-
-1. Navigate to the `dist` directory:
-   ```bash
-   cd dist/digital-signature
-   ```
-
-2. Run the `npm publish` command to publish your library to the npm registry:
-   ```bash
-   npm publish
-   ```
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+## Test
 
 ```bash
-ng test
+ng test digital-signature --watch=false
 ```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

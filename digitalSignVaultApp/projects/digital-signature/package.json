@@ -1,14 +1,13 @@
 {
   "name": "@yandiswanpm/digital-signature",
-  "version": "0.0.1",
-  "description": "Angular components for creating and managing digital signatures",
+  "version": "0.1.0",
+  "description": "Reusable Angular components for capturing digital signatures",
   "license":"MIT",
   "peerDependencies": {
     "@angular/common": "^20.3.0",
     "@angular/core": "^20.3.0",
     "@angular/cdk": "^20.0.0",
-    "@angular/material": "^20.0.0",
-    "rxjs": "^7.8.0"
+    "@angular/material": "^20.0.0"
   },
   "dependencies": {
     "tslib": "^2.3.0"
